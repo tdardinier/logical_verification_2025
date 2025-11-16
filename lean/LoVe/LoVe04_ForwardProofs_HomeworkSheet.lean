@@ -38,14 +38,30 @@ Hint: There is an easy way. -/
 
 theorem about_Impl_term :
     ∀a b : Prop, ¬ a ∨ b → a → b :=
-  sorry
+    fun a: Prop ↦ fun b: Prop ↦ fun h: ¬ a ∨ b ↦ fun ha: a ↦
+    Or.elim h
+    (fun hna: ¬ a ↦ False.elim (hna ha))
+    (fun hb: b ↦ hb)
 
 /- 1.2 (2 points). Prove the same theorem again, this time by providing a
 structured proof, with `fix`, `assume`, and `show`. -/
 
 theorem about_Impl_struct :
     ∀a b : Prop, ¬ a ∨ b → a → b :=
-  sorry
+    fix a b: Prop
+    assume hor: ¬ a ∨ b
+    assume aa: a
+    show b from
+      Or.elim hor
+      (
+        fix ha: ¬ a
+        show b from
+          False.elim (ha aa)
+      )
+      (
+        fix hb: b
+        show b from hb
+      )
 
 
 /- ## Question 2 (6 points): Connectives and Quantifiers
@@ -56,7 +72,35 @@ rules for `∀`, `∨`, and `↔`. -/
 
 theorem Or_comm_under_All {α : Type} (p q : α → Prop) :
     (∀x, p x ∨ q x) ↔ (∀x, q x ∨ p x) :=
-  sorry
+    Iff.intro
+    (
+      assume lhs: ∀x, p x ∨ q x
+      fix x: α
+      show q x ∨ p x from
+        Or.elim (lhs x)
+        (
+          assume hp: p x
+          show _ from Or.inr hp
+        )
+        (
+          assume hq: q x
+          show _ from Or.inl hq
+        )
+    )
+    (
+      assume rhs: ∀x, q x ∨ p x
+      fix x: α
+      show p x ∨ q x from
+        Or.elim (rhs x)
+        (
+          assume hq: q x
+          show _ from Or.inr hq
+        )
+        (
+          assume hp: p x
+          show _ from Or.inl hp
+        )
+    )
 
 /- 2.2 (3 points). We have proved or stated three of the six possible
 implications between `ExcludedMiddle`, `Peirce`, and `DoubleNegation` in the
@@ -71,15 +115,23 @@ namespace BackwardProofs
 
 theorem Peirce_of_DN :
     DoubleNegation → Peirce :=
-  sorry
+    assume dn: DoubleNegation
+    have hem: ExcludedMiddle :=
+      SorryTheorems.EM_of_DN dn
+    show Peirce from
+      Peirce_of_EM hem
 
 theorem EM_of_Peirce :
     Peirce → ExcludedMiddle :=
-  sorry
+    assume hp: Peirce
+    have hdn: DoubleNegation := DN_of_Peirce hp
+    show _ from SorryTheorems.EM_of_DN hdn
 
 theorem dn_of_em :
     ExcludedMiddle → DoubleNegation :=
-  sorry
+    assume hem: ExcludedMiddle
+    have hp: Peirce := Peirce_of_EM hem
+    show _ from DN_of_Peirce hp
 
 end BackwardProofs
 

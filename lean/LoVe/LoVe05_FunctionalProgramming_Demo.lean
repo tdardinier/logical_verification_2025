@@ -465,7 +465,6 @@ theorem mirror_Eq_nil_Iff {α : Type} :
   | Tree.nil        => by simp [mirror]
   | Tree.node _ _ _ => by simp [mirror]
 
-
 /- ## Dependent Inductive Types (**optional**) -/
 
 inductive Vec (α : Type) : ℕ → Type where

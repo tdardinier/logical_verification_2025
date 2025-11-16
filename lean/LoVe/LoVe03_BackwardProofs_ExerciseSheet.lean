@@ -27,35 +27,49 @@ Section 3.3 in the Hitchhiker's Guide. -/
 
 theorem I (a : Prop) :
     a → a :=
-  sorry
+  by
+    intro aa
+    exact aa
 
 theorem K (a b : Prop) :
     a → b → b :=
-  sorry
+    by
+      intro _ bb
+      exact bb
 
 theorem C (a b c : Prop) :
     (a → b → c) → b → a → c :=
-  sorry
+    by
+      intro f bb aa
+      apply f aa bb
 
 theorem proj_fst (a : Prop) :
     a → a → a :=
-  sorry
+    by
+      intro a1 a2
+      exact a1
 
 /- Please give a different answer than for `proj_fst`: -/
 
 theorem proj_snd (a : Prop) :
     a → a → a :=
-  sorry
+    by
+      intro a1 a2
+      exact a2
 
 theorem some_nonsense (a b c : Prop) :
     (a → b → c) → a → (a → c) → b → c :=
-  sorry
+    by
+      intro fabc aa fac bb
+      exact fac aa
 
 /- 1.2. Prove the contraposition rule using basic tactics. -/
 
 theorem contrapositive (a b : Prop) :
-    (a → b) → ¬ b → ¬ a :=
-  sorry
+    (a → b) → ¬ b → ¬ a := by
+    intro fab notb aa
+    apply notb
+    exact fab aa
 
 /- 1.3. Prove the distributivity of `∀` over `∧` using basic tactics.
 
@@ -64,9 +78,20 @@ forward reasoning, like in the proof of `and_swap_braces` in the lecture, might
 be necessary. -/
 
 theorem forall_and {α : Type} (p q : α → Prop) :
-    (∀x, p x ∧ q x) ↔ (∀x, p x) ∧ (∀x, q x) :=
-  sorry
-
+    (∀x, p x ∧ q x) ↔ (∀x, p x) ∧ (∀x, q x) := by
+    apply Iff.intro
+    intro hpq
+    apply And.intro
+    intro x
+    apply And.left
+    apply hpq x
+    intro x
+    apply And.right
+    apply hpq x
+    intro hand x
+    apply And.intro
+    { exact And.left hand x }
+    { exact And.right hand x }
 
 /- ## Question 2: Natural Numbers
 
@@ -77,23 +102,58 @@ theorem forall_and {α : Type} (p q : α → Prop) :
 
 theorem mul_zero (n : ℕ) :
     mul 0 n = 0 :=
-  sorry
+    by
+      induction n with
+    | zero => rfl
+    | succ n' ih => simp [mul, ih]
+
+theorem mul_one (n : ℕ) :
+    mul 1 n = n :=
+    by
+      induction n with
+    | zero => rfl
+    | succ n' ih =>
+      simp [mul, ih, add]
+      apply add_comm
 
 #check add_succ
 theorem mul_succ (m n : ℕ) :
     mul (Nat.succ m) n = add (mul m n) n :=
-  sorry
+    by induction n with
+    | zero => rfl
+    | succ nn ih =>
+    simp [ih, mul, add, add_succ]
+    ac_rfl
+
+/-
+theorem mul_succ (m n : ℕ) :
+    mul (Nat.succ m) n = add (mul m n) n :=
+    by induction m with
+    | zero =>
+      rw [mul_zero]
+      simp
+      apply mul_one
+    | succ mm ih =>
+    -/
 
 /- 2.2. Prove commutativity and associativity of multiplication using the
 `induction` tactic. Choose the induction variable carefully. -/
 
 theorem mul_comm (m n : ℕ) :
     mul m n = mul n m :=
-  sorry
+    by induction n with
+    | zero => simp [mul, mul_zero]
+    | succ nn ih =>
+      simp [ih, mul, mul_succ]
+      ac_rfl
 
 theorem mul_assoc (l m n : ℕ) :
     mul (mul l m) n = mul l (mul m n) :=
-  sorry
+    by induction n with
+    | zero => simp [mul]
+    | succ nn ih =>
+      simp [ih, mul]
+      rw [mul_add]
 
 /- 2.3. Prove the symmetric variant of `mul_add` using `rw`. To apply
 commutativity at a specific position, instantiate the rule by passing some
@@ -101,7 +161,8 @@ arguments (e.g., `mul_comm _ l`). -/
 
 theorem add_mul (l m n : ℕ) :
     mul (add l m) n = add (mul n l) (mul n m) :=
-  sorry
+    by
+    rw [mul_comm, mul_add]
 
 
 /- ## Question 3 (**optional**): Intuitionistic Logic
@@ -130,13 +191,36 @@ and similarly for `Peirce`. -/
 
 theorem Peirce_of_EM :
     ExcludedMiddle → Peirce :=
-  sorry
+    by
+    rw [ExcludedMiddle, Peirce]
+    intro hem a b aba
+    apply Or.elim
+    apply hem a
+    intro aa
+    apply aa
+    intro nota
+    rw [Not] at nota
+    apply aba
+    intro aa
+    apply False.elim
+    exact nota aa
+
 
 /- 3.2 (**optional**). Prove the following implication using tactics. -/
 
 theorem DN_of_Peirce :
     Peirce → DoubleNegation :=
-  sorry
+    by
+    rw [DoubleNegation, Peirce]
+    intro hdn
+    intro a
+    intro nna
+    rw [Not, Not] at nna
+    apply hdn a False
+    intro afalse
+    apply False.elim
+    exact nna afalse
+
 
 /- We leave the remaining implication for the homework: -/
 

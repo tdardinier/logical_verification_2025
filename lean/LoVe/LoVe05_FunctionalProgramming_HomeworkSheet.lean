@@ -32,7 +32,10 @@ tree over some type variable `α` and that returns the weight component of the
 root node of the tree: -/
 
 def weight {α : Type} : HTree α → ℕ :=
-  sorry
+  fun t ↦
+  match t with
+  | HTree.leaf w _ => w
+  | HTree.inner w _ _ => w
 
 /- 1.2 (1 point). Define a polymorphic Lean function called `unite` that takes
 two trees `l, r : HTree α` and that returns a new tree such that (1) its left
@@ -40,7 +43,8 @@ child is `l`; (2) its right child is `r`; and (3) its weight is the sum of the
 weights of `l` and `r`. -/
 
 def unite {α : Type} : HTree α → HTree α → HTree α :=
-  sorry
+  fun l r =>
+    HTree.inner (weight l + weight r) l r
 
 /- 1.3 (2 points). Consider the following `insort` function, which inserts a
 tree `u` in a list of trees that is sorted by increasing weight and which
@@ -53,9 +57,28 @@ def insort {α : Type} (u : HTree α) : List (HTree α) → List (HTree α)
 
 /- Prove that `insort`ing a tree into a list cannot yield the empty list: -/
 
-theorem insort_Neq_nil {α : Type} (t : HTree α) :
-    ∀ts : List (HTree α), insort t ts ≠ [] :=
-  sorry
+theorem insort_Neq_nil {α : Type} (u : HTree α) :
+    ∀ts : List (HTree α), insort u ts ≠ [] := by
+    intro ts
+    match ts with
+    | [] => simp [insort]
+    | t::ts => match Classical.em (weight u ≤ weight t) with
+      | Or.inl h => simp [insort, h]
+      | Or.inr h => simp [insort, h]
+
+
+theorem insort_Neq_nil_with_if {α : Type} (u : HTree α) :
+    ∀ts : List (HTree α), insort u ts ≠ [] :=
+    fun ts =>
+    match ts with
+    | [] => by simp [insort]
+    | t::ts =>
+      if h : weight u ≤ weight t then
+        by
+          simp [insort, h]
+      else
+        by
+          simp [insort, h]
 
 /- 1.4 (2 points). Prove the same property as above again, this time as a
 "paper" proof. Follow the guidelines given in question 1.4 of the exercise. -/
@@ -86,15 +109,24 @@ Hints:
 #check add_mul
 
 theorem sumUpToOfFun_eq :
-    ∀m : ℕ, 2 * sumUpToOfFun (fun i ↦ i) m = m * (m + 1) :=
-  sorry
+    ∀m : ℕ, 2 * sumUpToOfFun (fun i ↦ i) m = m * (m + 1)
+  | 0 => by simp [sumUpToOfFun]
+  | n + 1 => by
+    simp [sumUpToOfFun, sumUpToOfFun_eq n, add_mul, mul_add]
+    linarith
+
 
 /- 2.2 (2 points). Prove the following property of `sumUpToOfFun`. -/
 
 theorem sumUpToOfFun_mul (f g : ℕ → ℕ) :
     ∀n : ℕ, sumUpToOfFun (fun i ↦ f i + g i) n =
-      sumUpToOfFun f n + sumUpToOfFun g n :=
-  sorry
+      sumUpToOfFun f n + sumUpToOfFun g n
+  | 0 => by simp [sumUpToOfFun]
+  | n + 1 => by
+    simp [sumUpToOfFun, sumUpToOfFun_mul f g n]
+    linarith
+
+
 
 /- 2.3 (2 bonus points). Prove `sumUpToOfFun_mul` again as a "paper" proof.
 Follow the guidelines given in question 1.4 of the exercise. -/

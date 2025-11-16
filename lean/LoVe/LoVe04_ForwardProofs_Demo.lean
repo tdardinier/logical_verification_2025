@@ -281,7 +281,7 @@ A type     | depending on | a term         | Dependent type (strictly speaking)
 A term     | depending on | a type         | Polymorphic term
 A type     | depending on | a type         | Type constructor
 
-Revised typing rules:
+Revised typing rulesa * (a + b) + b * (a + b) :
 
     C ⊢ t : (x : σ) → τ[x]    C ⊢ u : σ
     ———————————————————————————————————— App'
@@ -382,7 +382,10 @@ end ForwardProofs
 
 By the PAT principle, a proof by induction is the same as a recursively
 specified proof term. Thus, as alternative to the `induction` tactic, induction
+can also be done by pattern matching and reBy the PAT principle, a proof by induction is the same as a recursively
+specified proof term. Thus, as alternative to the `induction` tactic, induction
 can also be done by pattern matching and recursion:
+cursion:
 
 * the induction hypothesis is then available under the name of the theorem we
   are proving;

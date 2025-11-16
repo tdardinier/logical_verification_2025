@@ -22,8 +22,9 @@ its argument, or 0 if the argument is 0. For example:
     `pred 7 = 6`
     `pred 0 = 0` -/
 
-def pred : ℕ → ℕ :=
-  sorry
+def pred : ℕ → ℕ
+ | Nat.zero => 0
+ | Nat.succ n => n
 
 /- 1.2. Check that your function works as expected. -/
 
@@ -63,6 +64,8 @@ def someEnv : String → ℤ
 #eval eval someEnv (AExp.var "x")   -- expected: 3
 -- invoke `#eval` here
 
+#eval eval someEnv (AExp.add (AExp.var "x") (AExp.var "y"))
+
 /- 2.2. The following function simplifies arithmetic expressions involving
 addition. It simplifies `0 + e` and `e + 0` to `e`. Complete the definition so
 that it also simplifies expressions involving the other three binary
@@ -72,6 +75,12 @@ def simplify : AExp → AExp
   | AExp.add (AExp.num 0) e₂ => simplify e₂
   | AExp.add e₁ (AExp.num 0) => simplify e₁
   -- insert the missing cases here
+  | AExp.sub (AExp.num 0) e₂ => simplify e₂
+  | AExp.sub e₁ (AExp.num 0) => simplify e₁
+  | AExp.mul (AExp.num 1) e₂ => simplify e₂
+  | AExp.mul e₁ (AExp.num 1) => simplify e₁
+  | AExp.div (AExp.num 1) e₂ => simplify e₂
+  | AExp.div e₁ (AExp.num 1) => simplify e₁
   -- catch-all cases below
   | AExp.num i               => AExp.num i
   | AExp.var x               => AExp.var x
@@ -90,7 +99,7 @@ the property that the value of `e` after simplification is the same as the
 value of `e` before. -/
 
 theorem simplify_correct (env : String → ℤ) (e : AExp) :
-  True :=   -- replace `True` by your theorem statement
+  eval env e = eval env (simplify e) :=   -- replace `True` by your theorem statement
   sorry   -- leave `sorry` alone
 
 
@@ -99,8 +108,10 @@ theorem simplify_correct (env : String → ℤ) (e : AExp) :
 3.1 (**optional**). Define a generic `map` function that applies a function to
 every element in a list. -/
 
-def map {α : Type} {β : Type} (f : α → β) : List α → List β :=
-  sorry
+def map {α : Type} {β : Type} (f : α → β) : List α → List β
+ | [] => []
+ | t::q => f t :: map f q
+
 
 #eval map (fun n ↦ n + 10) [1, 2, 3]   -- expected: [11, 12, 13]
 
@@ -114,5 +125,12 @@ Try to give meaningful names to your theorems. Also, make sure to state the
 second property as generally as possible, for arbitrary types. -/
 
 -- enter your theorem statements here
+
+theorem identity_map {α: Type} (l: List α):
+  map (fun x => x) l = l := sorry
+
+theorem map_asso {α: Type} {β: Type} {γ: Type} (f: α → β) (g: β → γ) (l: List α):
+  map (fun x ↦ g (f x)) l = map g (map f l)
+  := sorry
 
 end LoVe

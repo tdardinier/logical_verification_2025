@@ -193,7 +193,7 @@ def eval (env : String → ℤ) : AExp → ℤ
   | AExp.mul e₁ e₂ => eval env e₁ * eval env e₂
   | AExp.div e₁ e₂ => eval env e₁ / eval env e₂
 
-#eval eval (fun x ↦ 7) (AExp.div (AExp.var "y") (AExp.num 0))
+#eval eval (fun x ↦ 5) (AExp.div (AExp.var "y") (AExp.num 6))
 
 /- Lean only accepts the function definitions for which it can prove
 termination. In particular, it accepts __structurally recursive__ functions,

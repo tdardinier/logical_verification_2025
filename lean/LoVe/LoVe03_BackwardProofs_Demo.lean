@@ -294,6 +294,7 @@ theorem abc_Eq_cba (a b c : ℕ) :
 `induction` performs induction on the specified variable. It gives rise to one
 named subgoal per constructor. -/
 
+@[simp]
 theorem add_zero (n : ℕ) :
     add 0 n = n :=
   by
@@ -312,7 +313,7 @@ theorem add_comm (m n : ℕ) :
     add m n = add n m :=
   by
     induction n with
-    | zero       => simp [add, add_zero]
+    | zero       => simp [add]
     | succ n' ih => simp [add, add_succ, ih]
 
 theorem add_assoc (l m n : ℕ) :
