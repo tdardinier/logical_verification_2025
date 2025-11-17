@@ -34,8 +34,17 @@ You will proceed in three steps.
 introduction rules for `True`, `∧`, and `↔` and that invokes `intro _` for
 `→`/`∀`. The tactic generalizes `intro_and` from the exercise. -/
 
+#check Iff.intro
+
 macro "safe_intros" : tactic =>
-  sorry
+  `(tactic|(
+    repeat'
+      first
+      | apply True.intro
+      | apply And.intro
+      | apply Iff.intro
+      | apply intro _
+  ))
 
 theorem abcd (a b c d : Prop) :
     a → ¬ b ∧ (c ↔ d) :=
