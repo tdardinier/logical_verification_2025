@@ -35,7 +35,20 @@ an arithmetic expression, an environment, and the value to which the expression
 evaluates in the given environment: -/
 
 inductive BigStep : AExp × Envir → ℤ → Prop
-  | num (i env) : BigStep (AExp.num i, env) i
+  | num i env : BigStep (AExp.num i, env) i
+  | var x env : BigStep (AExp.var x, env) (env x)
+  | add e1 e2 env v1 v2 v (h1: BigStep (e1, env) v1) (h2: BigStep (e2, env) v2)
+    (hval: v = v1 + v2) :
+    BigStep (AExp.add e1 e2, env) v
+  | sub e1 e2 env v1 v2 v (h1: BigStep (e1, env) v1) (h2: BigStep (e2, env) v2)
+    (hval: v = v1 - v2) :
+    BigStep (AExp.sub e1 e2, env) v
+  | mul e1 e2 env v1 v2 v (h1: BigStep (e1, env) v1) (h2: BigStep (e2, env) v2)
+    (hval: v = v1 * v2) :
+    BigStep (AExp.mul e1 e2, env) v
+  | div e1 e2 env v1 v2 v (h1: BigStep (e1, env) v1) (h2: BigStep (e2, env) v2)
+    (hval: v = v1 / v2) :
+    BigStep (AExp.div e1 e2, env) v
 
 infix:60 " ⟹ " => BigStep
 
@@ -47,14 +60,25 @@ Hint: It may help to first prove
 
 theorem BigStep_add_two_two (env : Envir) :
     (AExp.add (AExp.num 2) (AExp.num 2), env) ⟹ 4 :=
-  sorry
+    by
+      apply BigStep.add
+      apply BigStep.num
+      apply BigStep.num
+      simp
 
 /- 1.3 (2 points). Prove that the big-step semantics is sound with respect to
 the `eval` function: -/
 
 theorem BigStep_sound (aenv : AExp × Envir) (i : ℤ) (hstep : aenv ⟹ i) :
     eval (Prod.snd aenv) (Prod.fst aenv) = i :=
-  sorry
+  by
+    induction hstep with
+    | num => simp [eval]
+    | var => simp [eval]
+    | add e1 e2 env v1 v2 v ih1 ih2 => simp [eval, ih1, ih2, hval, h1_ih, h2_ih]
+    | sub e1 e2 env v1 v2 v ih1 ih2 => simp [eval, ih1, ih2, hval, h1_ih, h2_ih]
+    | mul e1 e2 env v1 v2 v ih1 ih2 => simp [eval, ih1, ih2, hval, h1_ih, h2_ih]
+    | div e1 e2 env v1 v2 v ih1 ih2 => simp [eval, ih1, ih2, hval, h1_ih, h2_ih]
 
 
 /- ## Question 2 (5 points + 1 bonus point): Semantics of Regular Expressions
@@ -128,24 +152,80 @@ inductive Matches {α : Type} : Regex α → List α → Prop
 
 @[simp] theorem Matches_atom {α : Type} {s : List α} {a : α} :
     Matches (Regex.atom a) s ↔ s = [a] :=
-  sorry
+    by
+      apply Iff.intro
+      {
+        intro h
+        cases h
+        rfl
+      }
+      {
+        intro h
+        rw [h]
+        apply Matches.atom
+      }
 
 @[simp] theorem Matches_nothing {α : Type} {s : List α} :
     ¬ Matches Regex.nothing s :=
-  sorry
+    by
+      intro h
+      cases h
 
 @[simp] theorem Matches_empty {α : Type} {s : List α} :
     Matches Regex.empty s ↔ s = [] :=
-  sorry
+    by
+      apply Iff.intro
+      {
+        intro h
+        cases h
+        rfl
+      }
+      {
+        intro h
+        rw [h]
+        apply Matches.empty
+      }
 
 @[simp] theorem Matches_concat {α : Type} {s : List α} {r₁ r₂ : Regex α} :
     Matches (Regex.concat r₁ r₂) s
     ↔ (∃s₁ s₂, Matches r₁ s₁ ∧ Matches r₂ s₂ ∧ s = s₁ ++ s₂) :=
-  sorry
+    by
+      apply Iff.intro
+      {
+        intro h
+        cases h
+        apply Exists.intro s₁
+        apply Exists.intro s₂
+        simp [h₁, h₂]
+      }
+      {
+        intro h
+        cases h
+        cases h_1
+        cases h
+        cases right
+        rw [right_1]
+        apply Matches.concat _ _ _ _ left left_1
+      }
 
 @[simp] theorem Matches_alt {α : Type} {s : List α} {r₁ r₂ : Regex α} :
     Matches (Regex.alt r₁ r₂) s ↔ (Matches r₁ s ∨ Matches r₂ s) :=
-  sorry
+    by
+      apply Iff.intro
+      {
+        intro h
+        cases h
+        apply Or.inl h_1
+        apply Or.inr h_1
+      }
+      {
+        intro h
+        cases h
+        apply Matches.alt_left
+        apply h_1
+        apply Matches.alt_right
+        apply h_1
+      }
 
 /- 2.3 (1 bonus point). Prove the following inversion rule. -/
 
@@ -153,6 +233,29 @@ theorem Matches_star {α : Type} {s : List α} {r : Regex α} :
     Matches (Regex.star r) s ↔
     s = []
     ∨ (∃s₁ s₂, Matches r s₁ ∧ Matches (Regex.star r) s₂ ∧ s = s₁ ++ s₂) :=
-  sorry
+  by
+    apply Iff.intro
+    {
+      intro h
+      cases h
+      apply Or.inl
+      rfl
+      apply Or.inr
+      apply Exists.intro s_1
+      apply Exists.intro s'
+      simp [h₁, h₂]
+    }
+    {
+      intro h
+      cases h
+      rw [h_1]
+      apply Matches.star_base
+      cases h_1
+      cases h
+      simp [h_1]
+      apply Matches.star_step
+      simp [h_1]
+      simp [h_1]
+    }
 
 end LoVe
