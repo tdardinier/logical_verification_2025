@@ -43,7 +43,7 @@ macro "safe_intros" : tactic =>
       | apply True.intro
       | apply And.intro
       | apply Iff.intro
-      | apply intro _
+      | intro _
   ))
 
 theorem abcd (a b c d : Prop) :
@@ -90,7 +90,39 @@ skip any declaration that is an implementation detail. -/
 #check @Exists
 
 partial def safeCases : TacticM Unit :=
-  sorry
+    withMainContext
+    (do
+       let lctx ← getLCtx
+       for ldecl in lctx do
+          if ! LocalDecl.isImplementationDetail ldecl then
+            let ty ← inferType ldecl.toExpr
+            if Expr.isAppOfArity ty ``And 2 || Expr.isAppOfArity ty ``False 0 || Expr.isAppOfArity ty ``Exists 2
+            then
+              cases ldecl.fvarId
+              -- split h : a ∧ b into h_left : a and h_right : b
+              safeCases
+              return ()
+        pure ()
+    )
+
+/-
+partial def casesAnd : TacticM Unit :=
+    withMainContext
+    (do
+       let lctx ← getLCtx
+       for ldecl in lctx do
+          if ! LocalDecl.isImplementationDetail ldecl then
+            let ty ← inferType ldecl.toExpr
+            if Expr.isAppOfArity ty ``And 2 then
+              cases ldecl.fvarId
+              -- split h : a ∧ b into h_left : a and h_right : b
+              casesAnd
+              return ()
+        pure ()
+    )
+
+
+-/
 
 elab "safe_cases" : tactic =>
   safeCases
@@ -123,7 +155,9 @@ on all goals, then `safe_cases` on all emerging subgoals, before it tries
 `assumption` on all emerging subsubgoals. -/
 
 macro "safe" : tactic =>
-  sorry
+  `(tactic|(
+    all_goals ((safe_intros <;> safe_cases) <;> try assumption)
+  ))
 
 theorem abcdef_abcd (a b c d e f : Prop) (P : ℕ → Prop)
       (hneg: ¬ a) (hand : a ∧ b ∧ c) (hor : c ∨ d) (himp : b → e) (hiff : e ↔ f)
@@ -165,6 +199,53 @@ theorem abcdef_abcd (a b c d e f : Prop) (P : ℕ → Prop)
         right : c
         ⊢ d -/
     repeat' sorry
+
+
+/-
+def sat_star_osl {α: Type} (plus: α → α → Option α) (S: Set α) (P Q: Set α → Prop): Prop :=
+  ∃SP SQ, P SP ∧ Q SQ
+    ∧ SP = { hp | ∃h hq, some h = plus hp hq ∧ hq ∈ SQ ∧ h ∈ S}
+    ∧ SQ = { hq | ∃h hp, some h = plus hp hq ∧ hp ∈ SP ∧ h ∈ S}
+
+def sat_star_first {α: Type} (plus: α → α → Option α) (S: Set α) (P Q: Set α → Prop): Prop :=
+  ∃SP SQ, P SP ∧ Q SQ ∧
+    S = { h | ∃hp hq, some h = plus hp hq ∧ hq ∈ SQ ∧ hp ∈ SP }
+
+#check Iff.intro
+
+theorem same_sat (α: Type) (plus: α → α → Option α) (S: Set α) (P Q: Set α → Prop):
+  sat_star_osl plus S P Q ↔ sat_star_first plus S P Q :=
+  by
+    rw [sat_star_first, sat_star_osl]
+    apply Iff.intro
+    intro h
+    rcases h with ⟨SP, h⟩
+    rcases h with ⟨SQ, h⟩
+    apply Exists.intro SP
+    apply Exists.intro SQ
+    apply And.intro
+    apply And.left h
+    apply And.intro
+    apply And.right at h
+    apply And.left h
+    apply Set.ext
+    intro x
+    apply Iff.intro
+    intro hmem
+    simp
+-/
+
+
+
+
+
+
+
+
+/-
+      SP = {hp | ∃ h hq, some h = plus hp hq ∧ (∃ h hp, some h = plus hp hq ∧ hp ∈ SP ∧ h ∈ S) ∧ h ∈ S}
+      -/
+
 
 
 /- ## Question 2 (2 bonus points): An `aesop`-Like Tactic
