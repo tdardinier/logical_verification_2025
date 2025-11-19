@@ -159,7 +159,19 @@ theorem MUL_correct (n₀ m₀ : ℕ) :
             by
             {
               clear left_1 right_1
-              sorry
+              apply Mathlib.Tactic.Ring.add_pf_add_lt (s "r")
+              calc
+                s "m" + ((s "n" - 1) * s "m") = s "m" + (s "n" * s "m" - s "m") := by
+                  clear right
+                  apply Nat.add_left_cancel_iff.mpr
+                  exact Nat.sub_one_mul (s "n") (s "m")
+                _ = s "m" + s "n" * s "m" - s "m" := by
+                  have hh: s "n" ≥ 1 := by
+                    exact Nat.one_le_iff_ne_zero.mpr right
+                  refine Eq.symm (Nat.add_sub_assoc ?h (s "m"))
+                  exact Nat.le_mul_of_pos_left (s "m") hh
+                _ = s "n" * s "m" := by
+                  exact Nat.add_sub_self_left (s "m") (s "n" * s "m")
             }
           _ = n₀ * s "m" := by simp [left_1]
         apply right_1
@@ -189,27 +201,43 @@ namespace TotalHoare
 
 theorem consequence {P P' Q Q' S}
       (hS : [* P *] (S) [* Q *]) (hP : ∀s, P' s → P s) (hQ : ∀s, Q s → Q' s) :
-    [* P' *] (S) [* Q' *] :=
-  sorry
+    [* P' *] (S) [* Q' *] := by
+    simp [TotalHoare] at *
+    intro s pre
+    have h_step := hS s (hP s pre)
+    cases h_step
+    apply Exists.intro w
+    apply And.intro h.left
+    exact hQ w h.right
+
 
 /- 2.2. Prove the rule for `skip`. -/
 
 theorem skip_intro {P} :
     [* P *] (Stmt.skip) [* P *] :=
-  sorry
+    by simp [TotalHoare]
 
 /- 2.3. Prove the rule for `assign`. -/
 
 theorem assign_intro {P x a} :
     [* fun s ↦ P (s[x ↦ a s]) *] (Stmt.assign x a) [* P *] :=
-  sorry
+    by simp [TotalHoare]
 
 /- 2.4. Prove the rule for `seq`. -/
 
 theorem seq_intro {P Q R S T} (hS : [* P *] (S) [* Q *])
       (hT : [* Q *] (T) [* R *]) :
-    [* P *] (S; T) [* R *] :=
-  sorry
+    [* P *] (S; T) [* R *] := by
+    simp [TotalHoare] at *
+    intro s pre
+    have h_inter := hS s pre
+    rcases h_inter with ⟨s'', _, _⟩
+    have h_fin := hT s'' right
+    rcases h_fin with ⟨s', _, _⟩
+    apply Exists.intro s'
+    apply And.intro _ right_1
+    apply Exists.intro s''
+    apply And.intro left left_1
 
 /- 2.5. Complete the proof of the rule for `if`–`then`–`else`.
 
@@ -218,8 +246,25 @@ Hint: The proof requires a case distinction on the truth value of `B s`. -/
 theorem if_intro {B P Q S T}
       (hS : [* fun s ↦ P s ∧ B s *] (S) [* Q *])
       (hT : [* fun s ↦ P s ∧ ¬ B s *] (T) [* Q *]) :
-    [* P *] (Stmt.ifThenElse B S T) [* Q *] :=
-  sorry
+    [* P *] (Stmt.ifThenElse B S T) [* Q *] := by
+    simp [TotalHoare] at *
+    intro s pre
+    cases Classical.em (B s)
+    have hh := hS s pre h
+    rcases hh with ⟨s', trans, post⟩
+    apply Exists.intro s'
+    apply And.intro
+    apply Or.inl
+    apply And.intro h trans
+    exact post
+    have hh := hT s pre h
+    rcases hh with ⟨s', trans, post⟩
+    apply Exists.intro s'
+    apply And.intro
+    apply Or.inr
+    apply And.intro h trans
+    exact post
+
 
 /- 2.6 (**optional**). Try to prove the rule for `while`.
 
@@ -243,14 +288,44 @@ theorem var_while_intro_aux {B} (I : State → Prop) (V : State → ℕ) {S}
     (h_inv : ∀v₀,
        [* fun s ↦ I s ∧ B s ∧ V s = v₀ *] (S) [* fun s ↦ I s ∧ V s < v₀ *]) :
     ∀v₀ s, V s = v₀ → I s → ∃t, (Stmt.whileDo B S, s) ⟹ t ∧ I t ∧ ¬ B t
-  | v₀, s, V_eq, hs =>
-    sorry
+  | v₀, s, V_eq, hs => by
+    cases Classical.em (B s) with
+    | inr h =>
+      apply Exists.intro s
+      apply And.intro
+      exact BigStep.while_false _ _ _ h
+      apply And.intro hs h
+    | inl h =>
+      have h_inv_now := h_inv v₀
+      rw [TotalHoare] at h_inv_now
+      have next_state: ∃ t, (S, s) ⟹ t ∧ I t ∧ V t < v₀ := by
+        apply h_inv_now s
+        simp [h, hs, V_eq]
+      rcases next_state with ⟨s'', trans, inv'', variant⟩
+      have h_last: ∃s', (Stmt.whileDo B S, s'') ⟹ s' ∧ I s' ∧ ¬ B s' := by
+        apply var_while_intro_aux I V h_inv (V s'')
+        simp
+        exact inv''
+      rcases h_last with ⟨s', trans', inv', neg⟩
+      apply Exists.intro s'
+      simp [inv']
+      apply And.intro _ neg
+      apply BigStep.while_true
+      exact h
+      exact trans
+      exact trans'
+
 
 theorem var_while_intro {B} (I : State → Prop) (V : State → ℕ) {S}
     (hinv : ∀v₀,
        [* fun s ↦ I s ∧ B s ∧ V s = v₀ *] (S) [* fun s ↦ I s ∧ V s < v₀ *]) :
     [* I *] (Stmt.whileDo B S) [* fun s ↦ I s ∧ ¬ B s *] :=
-  sorry
+    by
+      rw [TotalHoare]
+      intro s h_inv
+      apply var_while_intro_aux _ _ hinv (V s)
+      simp
+      exact h_inv
 
 end TotalHoare
 
