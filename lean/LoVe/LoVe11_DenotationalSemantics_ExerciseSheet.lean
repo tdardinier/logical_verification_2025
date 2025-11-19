@@ -21,16 +21,27 @@ namespace LoVe
 
 theorem Monotone_restrict {α β : Type} [PartialOrder α] (f : α → Set (β × β))
       (p : β → Prop) (hf : Monotone f) :
-    Monotone (fun a ↦ f a ⇃ p) :=
-  sorry
+    Monotone (fun a ↦ f a ⇃ p) := by
+    rw [Monotone] at *
+    intro a1 a2 h
+    specialize hf a1 a2 h
+    simp [restrict]
+    intro a b h1 h2
+    apply And.intro _ h2
+    aesop
 
 /- 1.2. Prove its cousin. -/
 
 theorem Monotone_comp {α β : Type} [PartialOrder α] (f g : α → Set (β × β))
       (hf : Monotone f) (hg : Monotone g) :
-    Monotone (fun a ↦ f a ◯ g a) :=
-  sorry
-
+    Monotone (fun a ↦ f a ◯ g a) := by
+    rw [Monotone] at *
+    intro a1 a2 h
+    simp [comp]
+    intro a b x h1 h2
+    specialize hf a1 a2 h
+    apply Exists.intro x
+    aesop
 
 /- ## Question 2: Regular Expressions
 
@@ -84,13 +95,35 @@ Hint: Exploit the correspondence with the WHILE language. -/
 def rel_of_Regex {α : Type} : Regex (Set (α × α)) → Set (α × α)
   | Regex.nothing      => ∅
   | Regex.empty        => Id
-  -- enter the missing cases here
+  | Regex.atom a       => a
+  | Regex.concat r1 r2 => rel_of_Regex r1 ◯ rel_of_Regex r2
+  | Regex.alt r1 r2    => rel_of_Regex r1 ∪ rel_of_Regex r2
+  | Regex.star r       => lfp (fun X => rel_of_Regex r ◯ X ∪ Id)
+
+/-
+lfp (fun X ↦ ((denote S ◯ X) ⇃ B)
+      ∪ (Id ⇃ (fun s ↦ ¬ B s)))
+-/
+
+
+/-
+lemma union_id_id_same {α: Type} (x y: Set (α × α)) (heq: x = y)
+:
+  (x ∪ Id) ∪ Id = y ∪ Id
+  := sorry
+-/
 
 /- 2.2. Prove the following recursive equation about your definition. -/
 
 theorem rel_of_Regex_Star {α : Type} (r : Regex (Set (α × α))) :
     rel_of_Regex (Regex.star r) =
-    rel_of_Regex (Regex.alt (Regex.concat r (Regex.star r)) Regex.empty) :=
-  sorry
+    rel_of_Regex (Regex.alt (Regex.concat r (Regex.star r)) Regex.empty) := by
+    simp [rel_of_Regex]
+    apply lfp_eq
+    apply Monotone_union
+    apply Monotone_comp
+    apply Monotone_const
+    apply Monotone_id
+    apply Monotone_const
 
 end LoVe

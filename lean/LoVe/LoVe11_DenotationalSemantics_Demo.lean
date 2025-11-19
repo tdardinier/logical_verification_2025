@@ -159,6 +159,8 @@ All monotone functions `f : Set α → Set α` admit least and greatest fixpoint
 Assuming `α` is inhabited, we have `∅ ⊆ Set.univ`, but
 `f ∅ = Set.univ ⊈ ∅ = f Set.univ`. -/
 
+#check PartialOrder
+
 def Monotone {α β : Type} [PartialOrder α] [PartialOrder β]
   (f : α → β) : Prop :=
   ∀a₁ a₂, a₁ ≤ a₂ → f a₁ ≤ f a₂
