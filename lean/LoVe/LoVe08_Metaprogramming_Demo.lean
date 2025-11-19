@@ -230,22 +230,6 @@ def hypothesis : TacticM Unit :=
           --else
           -- logInfo m!"Implementation detail {ldecl.toExpr}"
        failure)
-def hypothesis : TacticM Unit :=
-  withMainContext
-    (do
-       let target ← getMainTarget
-       let lctx ← getLCtx
-       for ldecl in lctx do
-         if ! LocalDecl.isImplementationDetail ldecl then
-           -- logInfo m!"Trying {ldecl.toExpr}"
-           let eq ← isDefEq (LocalDecl.type ldecl) target
-           if eq then
-             let goal ← getMainGoal
-             MVarId.assign goal (LocalDecl.toExpr ldecl)
-             return
-          --else
-          -- logInfo m!"Implementation detail {ldecl.toExpr}"
-       failure)
 
 elab "hypothesis" : tactic =>
   hypothesis

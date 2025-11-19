@@ -374,7 +374,7 @@ partial def vcg : TacticM Unit :=
       let target ← getMainTarget
       match matchPartialHoare target with
       | Option.none           => return
-      | Option.some (P, S, Q) =>
+      | Option.some (P, S, _) =>
         if Expr.isAppOfArity S ``Stmt.skip 0 then
           if Expr.isMVar P then
             applyConstant ``PartialHoare.skip_intro

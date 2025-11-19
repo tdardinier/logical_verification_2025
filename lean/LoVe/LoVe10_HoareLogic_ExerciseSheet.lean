@@ -2,6 +2,9 @@
 Xavier Généreux, Johannes Hölzl, and Jannis Limperg. See `LICENSE.txt`. -/
 
 import LoVe.LoVe10_HoareLogic_Demo
+--import Std.Tactic.Linarith
+-- import Aesop
+-- import Mathlib.Tactic.Omega
 
 
 /- # LoVe Exercise 10: Hoare Logic
@@ -14,7 +17,6 @@ set_option tactic.hygienic false
 
 namespace LoVe
 
-
 /- ## Question 1: Program Verification
 
 1.1. The following WHILE program takes two numbers `a` and `b` and increments
@@ -24,6 +26,13 @@ def COUNT_UP : Stmt :=
   Stmt.whileDo (fun s ↦ s "b" ≠ s "a")
     (Stmt.assign "b" (fun s ↦ s "b" + 1))
 
+/-
+while (b ≠ a)
+{
+  b := b + 1
+}
+-/
+
 /- Prove the following Hoare triple. The main difficulty is to figure out which
 invariant to use for the while loop. The invariant should capture both the work
 that has been done already (the intermediate result) and the work that remains
@@ -32,9 +41,23 @@ to be done. Use a `show` command to annotate the program with a loop invariant.
 Hint: If a variable `x` does not change in a program, it might be useful to
 record this in the invariant, by adding a conjunct `s "x" = x₀`. -/
 
+#check PartialHoare.while_intro'
+--(fun s ↦ s "a" = a₀)
 theorem COUNT_UP_correct (a₀ : ℕ) :
     {* fun s ↦ s "a" = a₀ *} (COUNT_UP) {* fun s ↦ s "a" = a₀ ∧ s "b" = a₀ *} :=
-  sorry
+    PartialHoare.while_intro' (fun s ↦ s "a" = a₀)
+    (by
+        apply PartialHoare.assign_intro'
+        aesop)
+    (by aesop)
+    (by aesop)
+
+theorem COUNT_UP_correct_alt (a₀ : ℕ) :
+    {* fun s ↦ s "a" = a₀ *} (COUNT_UP) {* fun s ↦ s "a" = a₀ ∧ s "b" = a₀ *} :=
+    by
+      refine PartialHoare.while_intro' (fun s ↦ s "a" = a₀) ?_ ?_ ?_
+      apply PartialHoare.assign_intro'
+      all_goals aesop
 
 /- 1.2. What happens if the program is run with `b > a`? How is this captured
 by the Hoare triple? -/
@@ -60,9 +83,35 @@ def sumUpTo : ℕ → ℕ
 /- Invoke `vcg` on `GAUSS` using a suitable loop invariant and prove the
 emerging verification conditions. -/
 
+def GAUSS_with_inv (N : ℕ) : Stmt :=
+  Stmt.assign "r" (fun s ↦ 0);
+  Stmt.assign "n" (fun s ↦ 0);
+  Stmt.invWhileDo
+    --(fun s ↦ s "n" ≤ N ∧ s "r" = s "n" * (s "n" - 1) / 2)
+    (fun s ↦ s "n" ≤ N ∧ s "r" = sumUpTo (s "n"))
+    (fun s ↦ s "n" ≠ N)
+    (Stmt.assign "n" (fun s ↦ s "n" + 1);
+     Stmt.assign "r" (fun s ↦ s "r" + s "n"))
+
 theorem GAUSS_correct (N : ℕ) :
-    {* fun s ↦ True *} (GAUSS N) {* fun s ↦ s "r" = sumUpTo N *} :=
-  sorry
+    {* fun _ ↦ True *} (GAUSS N) {* fun s ↦ s "r" = sumUpTo N *} :=
+    by
+      have with_inv:
+        ({* fun s ↦ True *} (GAUSS_with_inv N) {* fun s ↦ s "r" = sumUpTo N *}) :=
+        by
+          rw [GAUSS_with_inv]
+          vcg
+          simp [sumUpTo]
+          intro s h1 h2 h3
+          apply And.intro
+          apply Nat.succ_le_of_lt
+          exact Nat.lt_of_le_of_ne h1 h3
+          rw [h2]
+          ac_rfl
+          aesop
+          aesop
+      rw [GAUSS_with_inv, Stmt.invWhileDo] at with_inv
+      simp [GAUSS, with_inv]
 
 /- 1.4 (**optional**). The following program `MUL` is intended to compute the
 product of `n` and `m`, leaving the result in `r`. Invoke `vcg` on `MUL` using a
@@ -73,11 +122,55 @@ def MUL : Stmt :=
   Stmt.whileDo (fun s ↦ s "n" ≠ 0)
     (Stmt.assign "r" (fun s ↦ s "r" + s "m");
      Stmt.assign "n" (fun s ↦ s "n" - 1))
+/-
+r := 0
+while n ≠ 0
+  invariant r = (n0 - n) * m
+  invariant r + n * m = n0 * m
+{
+  r := r + m
+  n := n - 1
+}
+-/
+
+def MUL_with_inv (n₀ m₀: Nat): Stmt :=
+  Stmt.assign "r" (fun s ↦ 0);
+  Stmt.invWhileDo
+    (fun s => s "r" + s "n" * s "m" = n₀ * s "m" ∧ s "m" = m₀)
+    (fun s ↦ s "n" ≠ 0)
+    (Stmt.assign "r" (fun s ↦ s "r" + s "m");
+     Stmt.assign "n" (fun s ↦ s "n" - 1))
 
 theorem MUL_correct (n₀ m₀ : ℕ) :
     {* fun s ↦ s "n" = n₀ ∧ s "m" = m₀ *} (MUL) {* fun s ↦ s "r" = n₀ * m₀ *} :=
-  sorry
-
+  by
+    have with_inv:
+      ({* fun s ↦ s "n" = n₀ ∧ s "m" = m₀ *} (MUL_with_inv n₀ m₀) {* fun s ↦ s "r" = n₀ * m₀ *}) :=
+      by
+        rw [MUL_with_inv]
+        vcg
+        intro s h1
+        cases h1
+        cases left
+        simp
+        apply And.intro
+        calc
+          s "r" + s "m" + (s "n" - 1) * s "m" = s "r" + s "n" * s "m" :=
+            by
+            {
+              clear left_1 right_1
+              sorry
+            }
+          _ = n₀ * s "m" := by simp [left_1]
+        apply right_1
+        aesop
+        intro s h1
+        apply And.intro
+        simp
+        apply Or.inl h1.left
+        simp [h1]
+    rw [MUL_with_inv, Stmt.invWhileDo] at with_inv
+    simp [MUL, with_inv]
 
 /- ## Question 2: Hoare Triples for Total Correctness
 
