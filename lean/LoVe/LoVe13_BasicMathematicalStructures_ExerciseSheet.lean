@@ -20,6 +20,7 @@ namespace LoVe
 Recall the inductive type `Tree` we introduced in lecture 5: -/
 
 #check Tree
+#print Tree
 
 /- The following function takes two trees and attaches copies of the second
 tree to each leaf of the first tree. -/
@@ -35,12 +36,17 @@ def Tree.graft {α : Type} : Tree α → Tree α → Tree α
 /- 1.1. Prove the following two theorems by structural induction on `t`. -/
 
 theorem Tree.graft_assoc {α : Type} (t u v : Tree α) :
-    Tree.graft (Tree.graft t u) v = Tree.graft t (Tree.graft u v) :=
-  sorry
+    Tree.graft (Tree.graft t u) v = Tree.graft t (Tree.graft u v) := by
+  induction t with
+  | nil => simp [Tree.graft]
+  | node a l r ihl ihr => simp [Tree.graft, ihl, ihr]
 
 theorem Tree.graft_nil {α : Type} (t : Tree α) :
-    Tree.graft t Tree.nil = t :=
-  sorry
+    Tree.graft t Tree.nil = t := by
+    induction t with
+  | nil => simp [Tree.graft]
+  | node a l r ihl ihr => simp [Tree.graft, ihl, ihr]
+
 
 /- 1.2. Declare `Tree` an instance of `AddMonoid` using `graft` as the
 addition operator. -/
@@ -49,13 +55,10 @@ addition operator. -/
 
 instance Tree.AddMonoid {α : Type} : AddMonoid (Tree α) :=
   { add       := Tree.graft
-    add_assoc :=
-      sorry
+    add_assoc := Tree.graft_assoc
     zero      := Tree.nil
-    add_zero  :=
-      sorry
-    zero_add  :=
-      sorry
+    add_zero  := Tree.graft_nil
+    zero_add  := by aesop
     nsmul     := @nsmulRec (Tree α) (Zero.mk Tree.nil) (Add.mk Tree.graft)
   }
 
@@ -70,9 +73,12 @@ declared an instance of `AddGroup`. -/
 with `graft` as addition does not constitute an `AddGroup`. -/
 
 theorem Tree.add_left_neg_counterexample :
-    ∃x : Tree ℕ, ∀y : Tree ℕ, Tree.graft y x ≠ Tree.nil :=
-  sorry
-
+    ∃x : Tree ℕ, ∀y : Tree ℕ, Tree.graft y x ≠ Tree.nil := by
+  apply Exists.intro (Tree.node 1 Tree.nil Tree.nil)
+  intro t
+  induction t with
+  | nil => simp [Tree.graft]
+  | node => simp [Tree.graft]
 
 /- ## Question 2: Multisets and Finsets
 
@@ -85,8 +91,12 @@ Recall the following definitions from the lecture: -/
 tree. -/
 
 theorem Finset.elems_mirror (t : Tree ℕ) :
-    Finset.elems (mirror t) = Finset.elems t :=
-  sorry
+    Finset.elems (mirror t) = Finset.elems t := by
+    induction t with
+    | nil => simp [elems]
+    | node =>
+      simp [elems]
+      aesop
 
 /- 2.2. Show that this does not hold for the list of nodes by providing a
 tree `t` for which `List.elems t ≠ List.elems (mirror t)`.
@@ -94,7 +104,9 @@ tree `t` for which `List.elems t ≠ List.elems (mirror t)`.
 If you define a suitable counterexample, the proof below will succeed. -/
 
 def rottenTree : Tree ℕ :=
-  sorry
+  Tree.node 1
+    (Tree.node 2 Tree.nil Tree.nil)
+    (Tree.node 3 Tree.nil Tree.nil)
 
 #eval List.elems rottenTree
 #eval List.elems (mirror rottenTree)
